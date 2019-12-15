@@ -42,8 +42,21 @@ class Core():
     self.missing = self.x_all.isnull().sum()
 
   def split(self):
-    self.x_train = self.x_all.iloc[self.n_train:].reset_index()
-    self.x_test = self.x_all.iloc[:self.n_train].reset_index()
+    self.x_train = self.x_all.iloc[:self.n_train].reset_index(drop=True)
+    self.x_test = self.x_all.iloc[self.n_train:].reset_index(drop=True)
+    
+    
+  def update(self):
+    self.n_train = len(self.x_train)
+    self.n_test = len(self.x_test)
+    self.n_all = len(self.x_all)
+
+    self.col_object = self.x_train.select_dtypes(include='object')
+    self.col_int = self.x_train.select_dtypes(include='int')
+    self.col_float = self.x_train.select_dtypes(include='float')
+    self.col_numeric = self.x_train.select_dtypes(exclude='object')
+
+    self.missing = self.x_all.isnull().sum()
 
 
 class Preprocess(Core):
@@ -51,21 +64,30 @@ class Preprocess(Core):
   def __init__(self, x_train, x_test, y_train):
     super().__init__(x_train, x_test, y_train)
 
-
+  '''
+  INTERFACE
+  '''
   def pull(self):
-    return self.x_train, self.x_test
+    return self.x_train, self.x_test, self.y_train
 
 
-  def fill(self, fill_method_num='mean', fill_method_object='Missing', help=False):
+  '''
+  PREPROCESS
+  '''
+  def fill(self, fill_method_num='mean', fill_method_object='Missing', help=False, inplace=False, get_return=False):
+    df = self.x_all.copy()
     method_num = ('mean', 'median', 'mode', 0)
     method_object = ('mode', 'Missing')
 
     if help:
       print('''
-      method_num must be in {}. \n
-      method_object must be in {}.
+      Usage:
+      'method_num' must be in {}. 
+      'method_object' must be in {}. 
+      'inplace' decides update this object or not. 
+      'get_return' decides return filed train and test data or not.
       '''.format(method_num, method_object))
-      return
+      return 
 
     if fill_method_num not in method_num:
       print('''
@@ -76,45 +98,61 @@ class Preprocess(Core):
       print('''
       Error! fill_method_object must be in {}.
       '''.format(fill_method_object))
+      return
 
     missing = self.missing[self.missing>0]
     for col in list(missing.index):
-
-      if self.x_all[col].dtype=='int64' or 'float64' or 'int16' or 'float16':
+      if df[col].dtype!='object':
         if fill_method_num is 'mean':
-          self.x_all[col].fillna(self.x_all[col].mean(), inplace=True)
+          df[col].fillna(df[col].mean(), inplace=True)
         elif fill_method_num is 'median':
-          self.x_all[col].fillna(self.x_all[col].median(), inplace=True)
+          df[col].fillna(df[col].median(), inplace=True)
         elif fill_method_num is 'mode':
-          self.x_all[col].fillna(self.x_all[col].mode(), inplace=True)
+          df[col].fillna(df[col].mode(), inplace=True)
         elif fill_method_num is 0:
-          self.x_all[col].fillna(0, inplace=True)
+          df[col].fillna(0, inplace=True)
 
-      if self.x_all[col].dtype=='object':
+      if df[col].dtype=='object':
         if fill_method_object is 'mode':
-          self.x_all[col].fillna(self.x_all[col].value_counts().index[0], inplace=True)
+          df[col].fillna(df[col].value_counts().index[0], inplace=True)
         if fill_method_object is 'Missing':
-          self.x_all[col].fillna('Missing', inplace=True)
-
-    Core.split(self)
+          df[col].fillna('Missing', inplace=True)
+          
+    if inplace:
+      self.x_all = df.copy()
+      Core.split(self)
+      Core.update(self)
 
     print('Missing NAN of Numeric types is filled by : {}.'.format(fill_method_num))
     print('Missing NAN of Numeric types is filled by : {}.'.format(fill_method_object))
+    
+    if get_return:
+      return df.iloc[:self.n_train].reset_index(drop=True), df.iloc[self.n_train:].reset_index(drop=True), self.y_train
 
 
-  def encode(self, method_enc='label'):
+  def encode(self, method_enc='label', inplace=False, get_return=True):
+    df = self.x_all.copy()
     col_object = self.col_object
     col_object_ind = []
     for col in col_object:
-      col_object_ind.append(self.x_all.columns.get_loc(col))
+      col_object_ind.append(df.columns.get_loc(col))
     if method_enc is 'label':
       label_enc = LabelEncoder()
       for i in col_object_ind:
-        self.x_all.iloc[:,i] = label_enc.fit_transform(self.x_all.iloc[:,i])
+        df.iloc[:,i] = label_enc.fit_transform(df.iloc[:,i])
     
-    Core.split(self)
+    if inplace:
+      self.x_all = df.copy()
+      Core.split(self)
+      Core.update(self)
+      
+    if get_return:
+      return df.iloc[:self.n_train].reset_index(drop=True), df.iloc[self.n_train:].reset_index(drop=True), self.y_train
 
 
+  '''
+  ANALYSIS
+  '''
   def count_byChi2(self, col, significance):
     data = self.x_all.fillna(self.x_all.median())
     data = data[col]
@@ -142,6 +180,7 @@ class Preprocess(Core):
               )
     if help:
       print('''
+      Usage:
       dtpye must be in {}.
       '''.format(dtypes))
       return
@@ -242,3 +281,6 @@ class Preprocess(Core):
       self.x_all = tmp.copy()   
     if get_return:
       return col_Kurts
+    
+    
+  def 
