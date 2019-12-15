@@ -221,13 +221,23 @@ class Preprocess(Core):
       sns.distplot(self.x_all[col].dropna(), hist=True, rug=True,
                    color=colorlist[i%len(colorlist)])
       plt.show()
-        
+      
+      plt.figure(figsize=(5, 3))
       sns.boxplot(data=self.x_all[col].dropna())
       plt.show()
-        
+      
+      df_tmp = pd.DataFrame({col:self.x_train[col],'SalePrice':self.y_train})
+      corr = df_tmp.corr()[col][1]
+      plt.figure(figsize=(4, 4))
+      plt.scatter(x = self.x_train[col], y = self.y_train)
+      plt.ylabel('SalePrice', fontsize=12)
+      plt.xlabel(col, fontsize=12)
+      plt.show()
+          
       print ('{} has {} NaNs ({:.2f}%).'.format(col, self.x_all[col].isnull().sum(), self.x_all[col].isnull().sum()/self.n_all*100))
-      print('Skewness : ', self.x_all[col].skew())
-      print('Kurtosis : ', self.x_all[col].kurt())
+      print('Correlation Coefficient ({} vs target): {:.3f}'.format(col, corr))
+      print('Skewness : {:.2f}'.format(self.x_all[col].skew()))
+      print('Kurtosis : {:.2f}'.format(self.x_all[col].kurt()))
       print('Number of anomaly scores over threshold({}%) : {} / {}'
             .format(significance*100, len(outliers), len(self.x_all[col])))
       if len(outliers) is not 0:
@@ -283,4 +293,8 @@ class Preprocess(Core):
       return col_Kurts
     
     
-  def 
+  def CorrY(self):
+    pass
+  
+  def CorrF(self):
+    pass
