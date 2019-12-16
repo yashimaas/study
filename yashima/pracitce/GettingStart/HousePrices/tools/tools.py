@@ -171,7 +171,27 @@ class Preprocess(Core):
     return outliers
 
 
-  def view(self, dtype='all', significance=0.01, help=False):
+  def viewY(self, dtype='numeric', significance=0.01):
+    col = self.y_train.name     
+    self.y_train.plot(figsize=(7,1.5), color='b')
+        
+    plt.figure(figsize=(7,1.5))
+    sns.distplot(self.y_train.dropna(), hist=True, rug=True,
+                 color='b')
+    plt.show()
+      
+    plt.figure(figsize=(5, 3))
+    sns.boxplot(data=self.y_train.dropna())
+    plt.show()
+          
+    print ('{} has {} NaNs ({:.2f}%).'.format(col, self.y_train.isnull().sum(), self.y_train.isnull().sum()/self.n_all*100))
+    print('Skewness : {:.2f}'.format(self.y_train.skew()))
+    print('Kurtosis : {:.2f}'.format(self.y_train.kurt()))
+    plt.close()
+    print('-'*100)
+
+
+  def viewF(self, dtype='all', significance=0.01, help=False):
     dtypes = (
               # 'all', 
               'numeric', 'int', 'float',
@@ -258,7 +278,7 @@ class Preprocess(Core):
     if plot:
       tmp = self.x_all.copy()
       self.x_all = self.x_all[col_NANs.index]
-      self.view('custom',significance=0.01)
+      self.viewF('custom',significance=0.01)
       self.x_all = tmp.copy()   
     if get_return:
       return col_NANs
@@ -272,7 +292,7 @@ class Preprocess(Core):
     if plot:
       tmp = self.x_all.copy()
       self.x_all = self.x_all[col_Skews.index]
-      self.view('custom',significance=0.01)
+      self.viewF('custom',significance=0.01)
       self.x_all = tmp.copy()   
     if get_return:
       return col_Skews
@@ -287,7 +307,7 @@ class Preprocess(Core):
     if plot:
       tmp = self.x_all.copy()
       self.x_all = self.x_all[col_Kurts.index]
-      self.view('custom',significance=0.01)
+      self.viewF('custom',significance=0.01)
       self.x_all = tmp.copy()   
     if get_return:
       return col_Kurts
@@ -295,6 +315,10 @@ class Preprocess(Core):
     
   def CorrY(self):
     pass
+     
   
-  def CorrF(self):
-    pass
+  def CorrF(self, method='person', view=False):
+    df_corr = self.x_all.corr()
+    if view:
+      sns.heatmap(df_corr, vmax=1, vmin=-1, center=0)
+      plt.show()
