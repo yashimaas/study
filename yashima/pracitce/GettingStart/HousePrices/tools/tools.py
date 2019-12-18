@@ -18,10 +18,10 @@ class Core():
     self.n_test = len(self.x_test)
     self.n_all = len(self.x_all)
 
-    self.col_object = self.x_train.select_dtypes(include='object')
-    self.col_int = self.x_train.select_dtypes(include='int')
-    self.col_float = self.x_train.select_dtypes(include='float')
-    self.col_numeric = self.x_train.select_dtypes(exclude='object')
+    self.col_object = self.x_train.select_dtypes(include='object').columns
+    self.col_int = self.x_train.select_dtypes(include='int').columns
+    self.col_float = self.x_train.select_dtypes(include='float').columns
+    self.col_numeric = self.x_train.select_dtypes(exclude='object').columns
 
     self.missing = self.x_all.isnull().sum()
     
@@ -35,10 +35,10 @@ class Core():
     self.n_test = len(self.x_test)
     self.n_all = len(self.x_all)
 
-    self.col_object = self.x_train.select_dtypes(include='object')
-    self.col_int = self.x_train.select_dtypes(include='int')
-    self.col_float = self.x_train.select_dtypes(include='float')
-    self.col_numeric = self.x_train.select_dtypes(exclude='object')
+    self.col_object = self.x_train.select_dtypes(include='object').columns
+    self.col_int = self.x_train.select_dtypes(include='int').columns
+    self.col_float = self.x_train.select_dtypes(include='float').columns
+    self.col_numeric = self.x_train.select_dtypes(exclude='object').columns
     
     self.missing = self.x_all.isnull().sum()
 
@@ -310,8 +310,8 @@ class Process(Core):
 
 
 
-  def viewY(self, dtype='numeric', significance=0.01):
-    col = self.y_train.name     
+  def viewY(self, dtype='numeric'): 
+    col = self.y_train.name    
     self.y_train.plot(figsize=(7,1.5), color='b')
         
     plt.figure(figsize=(7,1.5))
@@ -487,12 +487,13 @@ class Process(Core):
     
     
   def CorrY(self, view_set=True,view_set_top=10, bar=True, plot=False, get_return=False):
+    columns = self.col_numeric
     corrs = []
-    for index in self.x_all.columns:
+    for index in columns:
       df_tmp = pd.DataFrame({index:self.x_train[index],'|corr|':self.y_train})
       corr = df_tmp.corr()[index][1] 
       corrs.append(abs(corr))
-    df_corr = pd.DataFrame({'Features':self.x_all.columns,'|corr|':corrs})
+    df_corr = pd.DataFrame({'Features':columns,'|corr|':corrs})
     df_corr = df_corr.set_index('Features')
     df_corr = df_corr.sort_values('|corr|',ascending=False)
     
