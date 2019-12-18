@@ -207,7 +207,8 @@ class Process(Core):
   def transF(self, method='log',inplace=False, get_return=False, help=False):
     methods = (
               'log',
-              'boxcox'
+              'boxcox',
+              'johnson'
               )
     if help:
       print('''
@@ -228,6 +229,9 @@ class Process(Core):
     elif method is 'boxcox':
       for col in self.col_numeric:
         df[col], _ = stats.boxcox(df[col])
+    elif method is 'johnson':
+      for col in self.col_numeric:
+        df[col], _ = stats.yeojohnson(df[col])
     
     if inplace:
       self.x_all = df.copy()
@@ -236,6 +240,7 @@ class Process(Core):
       
     if get_return:
       return df.iloc[:self.n_train].reset_index(drop=True), df.iloc[self.n_train:].reset_index(drop=True), self.y_train
+  
     
     
   def dropVar(self, threshold=0, view=True, inplace=False, get_return=False):
@@ -257,6 +262,31 @@ class Process(Core):
       
     if get_return:
       return df.iloc[:self.n_train].reset_index(drop=True), df.iloc[self.n_train:].reset_index(drop=True), self.y_train
+    
+    
+    
+  def rejectOut(self, columns, significance=0.01, inplace=False, get_return=False):
+    df_x = self.x_train.copy()
+    df_y = self.y_train.copy()
+    count = 0
+    for col in columns:
+      outliers = self.count_byChi2(col, significance)
+      for i in outliers:
+        if i in df_x[col].index.to_list():
+          df_x = df_x.drop(i, axis=0)
+          df_y = df_y.drop(i, axis=0)
+          count += 1
+    print('Rejected data by Outliers from : ', columns)
+    print('Rejected {} data.'.format(count))
+    
+    if inplace:
+      self.x_train = df_x.copy()
+      self.y_train = df_y.copy()
+      self.x_all = pd.concat([self.x_train, self.x_test], sort=False, ignore_index=True, axis=0)
+      Core.update(self)
+      
+    if get_return:
+      return df_x, self.x_test, df_y
 
   '''
   ANALYSIS
