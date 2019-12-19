@@ -200,7 +200,7 @@ class Process(Core):
       self.y_train = y_trans.copy()
       
     if get_return:
-      return self.x_train, self.x_test, self.y_train
+      return self.x_train, self.x_test, y_trans
  
   
   
@@ -313,25 +313,25 @@ class Process(Core):
   def viewY(self, dtype='numeric'): 
     col = self.y_train.name    
     self.y_train.plot(figsize=(7,1.5), color='b')
-        
-    plt.figure(figsize=(7,1.5))
+    
+    fig = plt.figure(figsize = (15,3))
+    ax1 = fig.add_subplot(1, 2, 1)
     sns.distplot(self.y_train.dropna(), hist=True, rug=True,
-                 color='b')
-    plt.show()
+                 color='b', ax=ax1)
       
-    plt.figure(figsize=(5, 3))
-    sns.boxplot(data=self.y_train.dropna())
+    ax2 = fig.add_subplot(1, 2, 2)
+    sns.boxplot(data=self.y_train.dropna(), ax=ax2)
     plt.show()
           
     print ('{} has {} NaNs ({:.2f}%).'.format(col, self.y_train.isnull().sum(), self.y_train.isnull().sum()/self.n_all*100))
     print('Skewness : {:.2f}'.format(self.y_train.skew()))
     print('Kurtosis : {:.2f}'.format(self.y_train.kurt()))
     plt.close()
-    print('-'*100)
+    print('-'*130)
 
 
 
-  def viewF(self, dtype='numeric', significance=0.01, help=False):
+  def viewF(self, dtype='numeric', significance=0.01, help=False, input_cols=[]):
     dtypes = (
               # 'all', 
               'numeric', 'int', 'float',
@@ -363,7 +363,10 @@ class Process(Core):
     if dtype is 'custom':
       columns = [col for col in self.x_all.columns if col in self.col_numeric]
 
-    colorlist = ["r", "g", "b", "c", "m", "y"]
+    if len(input_cols) != 0:
+      columns = input_cols
+
+    colorlist = ["r", "g", "c", "m", "y"]
     for i, col in enumerate(columns):       
       outliers = self.count_byChi2(col, significance)
       
@@ -376,22 +379,21 @@ class Process(Core):
         # out_max[:] = max(self.x_all.reset_index(drop=True)[col][outliers])
         # out_max.plot(figsize=(7,1.5), color='black')
       plt.show()
-        
-      plt.figure(figsize=(7,1.5))
-      sns.distplot(self.x_all[col].dropna(), hist=True, rug=True,
-                   color=colorlist[i%len(colorlist)])
-      plt.show()
       
-      plt.figure(figsize=(5, 3))
-      sns.boxplot(data=self.x_all[col].dropna())
-      plt.show()
+      fig = plt.figure(figsize = (15,7))
+      ax1 = fig.add_subplot(2, 2, 1)
+      sns.distplot(self.x_all[col].dropna(), hist=True, rug=True,
+                   color=colorlist[i%len(colorlist)], ax=ax1)
+
+      ax2 = fig.add_subplot(2, 2, 2)
+      sns.boxplot(data=self.x_all[col].dropna(), ax=ax2)
       
       df_tmp = pd.DataFrame({col:self.x_train[col],self.y_train.name:self.y_train})
       corr = df_tmp.corr()[col][1]
-      plt.figure(figsize=(4, 4))
-      plt.scatter(x = self.x_train[col], y = self.y_train)
-      plt.ylabel(self.y_train.name, fontsize=12)
-      plt.xlabel(col, fontsize=12)
+      ax3 = fig.add_subplot(2, 2, 3)
+      sns.regplot(x = self.x_train[col], y = self.y_train, ax=ax3)
+      ax4 = fig.add_subplot(2, 2, 4)
+      sns.residplot(x = self.x_train[col], y = self.y_train, ax=ax4)
       plt.show()
           
       print ('{} has {} NaNs ({:.2f}%).'.format(col, self.x_all[col].isnull().sum(), self.x_all[col].isnull().sum()/self.n_all*100))
@@ -405,7 +407,7 @@ class Process(Core):
       else:
         pass
       plt.close()
-      print('-'*100)
+      print('-'*130)
       
  
       
@@ -486,8 +488,10 @@ class Process(Core):
   
     
     
-  def CorrY(self, view_set=True,view_set_top=10, bar=True, plot=False, get_return=False):
+  def CorrY(self, view_set=True,view_set_top=10, bar=True, plot=False, get_return=False, input_cols=[]):
     columns = self.col_numeric
+    if len(input_cols)!=0:
+      columns = input_cols
     corrs = []
     for index in columns:
       df_tmp = pd.DataFrame({index:self.x_train[index],'|corr|':self.y_train})
