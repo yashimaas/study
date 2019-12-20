@@ -519,8 +519,7 @@ class Process(Core):
   
      
   
-  def CorrF(self, method='pearson', view_set=True, view_set_top=10, view_map=True, get_return=False):
-    columns = self.x_all.columns.tolist()
+  def CorrF(self, method='pearson', view_set=True, view_set_top=10, view_map=False, get_return=False):
     df_corr = self.x_all.corr(method)
     df_corr = abs(df_corr)
     n = len(df_corr)
@@ -532,8 +531,8 @@ class Process(Core):
         if i==j:
           continue
         corr_ary.append(df_corr.iloc[i,j])
-        var1_ary.append(columns[i])
-        var2_ary.append(columns[j])
+        var1_ary.append(df_corr.columns[i])
+        var2_ary.append(df_corr.columns[j])
     df_new = pd.DataFrame([])
     df_new["var1"] = var1_ary
     df_new["var2"] = var2_ary
