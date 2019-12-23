@@ -2,6 +2,7 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_selection import VarianceThreshold
 from scipy import stats
+from scipy import special
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -47,6 +48,8 @@ class Core():
     self.x_test = self.x_all.iloc[self.n_train:].reset_index(drop=True)    
     
   def update(self):
+    self.x_all = pd.concat([self.x_train, self.x_test], sort=False, ignore_index=True, axis=0)
+    
     self.n_train = len(self.x_train)
     self.n_test = len(self.x_test)
     self.n_all = len(self.x_all)
@@ -204,11 +207,11 @@ class Process(Core):
  
   
   
-  def transF(self, method='log',inplace=False, get_return=False, help=False):
+  def transF(self, threshold=0.5, method='log',inplace=False, get_return=False, help=False):
     methods = (
               'log',
               'boxcox',
-              'johnson'
+              # 'johnson'
               )
     if help:
       print('''
@@ -222,16 +225,21 @@ class Process(Core):
       '''.format(methods))
       return
     
-    df = self.x_all.copy()      
+    df = self.x_all.copy()   
+    numeric_feats = df.dtypes[df.dtypes != "object"].index
+    skewed_feats = df[numeric_feats].apply(lambda x: stats.skew(x)).sort_values(ascending=False)
+    high_skew = skewed_feats[abs(skewed_feats) > threshold]
+    skewed_features = high_skew.index
+       
     if method is 'log':
-      for col in self.col_numeric:
-        df[col] = np.log1p(df[col])      
+      for feat in skewed_features:
+        df[feat] = np.log1p(df[feat])      
     elif method is 'boxcox':
-      for col in self.col_numeric:
-        df[col], _ = stats.boxcox(df[col])
-    elif method is 'johnson':
-      for col in self.col_numeric:
-        df[col], _ = stats.yeojohnson(df[col])
+      for feat in skewed_features:
+        df[feat] = special.boxcox1p(df[feat], stats.boxcox_normmax(df[feat] + 1))
+    # elif method is 'johnson':
+    #   for col in self.col_numeric:
+    #     df[col], _ = stats.yeojohnson(df[col])
     
     if inplace:
       self.x_all = df.copy()
@@ -411,10 +419,11 @@ class Process(Core):
       
  
       
-  def NANs(self, top=10, bar=True, plot=False, get_return=False):
+  def NANs(self, top=-1, bar=True, plot=False, get_return=False):
     col_NANs = self.x_all.isnull().sum().sort_values()
     if top==-1:
-      pass
+      len_NANs = len([col for col in col_NANs.index if col_NANs[col] != 0])
+      col_NANs = col_NANs[len(col_NANs)-len_NANs:]
     else:
       col_NANs = col_NANs[len(col_NANs)-top:]
     col_NANs = col_NANs/self.n_all
@@ -427,7 +436,7 @@ class Process(Core):
       self.viewF('custom',significance=0.01)
       self.x_all = tmp.copy()   
     if get_return:
-      return col_NANs
+      return col_NANs[::-1]
  
  
     
@@ -446,7 +455,7 @@ class Process(Core):
       self.viewF('custom',significance=0.01)
       self.x_all = tmp.copy()   
     if get_return:
-      return col_Skews
+      return col_Skews[::-1]
     
   
     
@@ -465,7 +474,7 @@ class Process(Core):
       self.viewF('custom',significance=0.01)
       self.x_all = tmp.copy()   
     if get_return:
-      return col_Kurts
+      return col_Kurts[::-1]
     
     
     
@@ -484,7 +493,7 @@ class Process(Core):
       self.viewF('custom',significance=0.01)
       self.x_all = tmp.copy()   
     if get_return:
-      return col_Vars
+      return col_Vars[::-1]
   
     
     
@@ -543,7 +552,7 @@ class Process(Core):
       print(df_new.head(view_set_top))
     
     if view_map:
-      sns.heatmap(df_corr, vmax=1, vmin=-1, center=0)
+      sns.heatmap(df_corr, vmax=1, vmin=0, center=0)
       plt.show()
       
     if get_return:
