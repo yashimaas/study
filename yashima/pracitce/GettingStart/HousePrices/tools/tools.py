@@ -78,10 +78,10 @@ class Process(Core):
   '''
   PREPROCESS
   '''
-  def fill(self, fill_method_num='mean', fill_method_object='Missing', help=False, inplace=False, get_return=False):
+  def fill(self, fill_method_num='mean', fill_method_object='None', help=False, inplace=False, get_return=False):
     df = self.x_all.copy()
     method_num = ('mean', 'median', 'mode', 0)
-    method_object = ('mode', 'Missing')
+    method_object = ('mode', 'Missing', 'None')
 
     if help:
       print('''
@@ -121,6 +121,8 @@ class Process(Core):
           df[col].fillna(df[col].value_counts().index[0], inplace=True)
         if fill_method_object is 'Missing':
           df[col].fillna('Missing', inplace=True)
+        if fill_method_object is 'None':
+          df[col].fillna('None', inplace=True)
           
     if inplace:
       self.x_all = df.copy()
