@@ -559,3 +559,13 @@ class Process(Core):
       
     if get_return:
       return df_new
+    
+    
+
+  def unique(self, input_cols=[]):
+    if len(input_cols)==0:
+      for col in self.col_object:
+        print(self.x_all[col].value_counts(),'\n')
+    else:
+      for col in input_cols:
+        print(self.x_all[col].value_counts(),'\n')
