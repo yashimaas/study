@@ -280,7 +280,7 @@ class Process(Core):
     df_y = self.y_train.copy()
     count = 0
     for col in columns:
-      outliers = self.count_byChi2(col, significance)
+      outliers = self.count_byChi2(col, significance, self.x_all)
       for i in outliers:
         if i in df_x[col].index.to_list():
           df_x = df_x.drop(i, axis=0)
@@ -301,8 +301,8 @@ class Process(Core):
   '''
   ANALYSIS
   '''
-  def count_byChi2(self, col, significance):
-    data = self.x_all.fillna(self.x_all.median())
+  def count_byChi2(self, col, significance, df):
+    data = df.fillna(df.median())
     data = data[col]
     data = data.reset_index(drop=True)
     mean = data.mean()
@@ -341,13 +341,19 @@ class Process(Core):
 
 
 
-  def viewF(self, dtype='numeric', significance=0.01, help=False, input_cols=[]):
+  def viewF(self, dtype='numeric', data='all', significance=0.01, help=False, input_cols=[]):
     dtypes = (
               # 'all', 
               'numeric', 'int', 'float',
               # 'object',
               'custom'
               )
+    data_set = (
+              'all', 
+              'train',
+              'test'
+              )
+    
     if help:
       print('''
       Usage:
@@ -359,9 +365,21 @@ class Process(Core):
       Error! 'dtpye' must be in {}.
       '''.format(dtypes))
       return
+    if data not in data_set:
+      print('''
+      Error! 'dtpye' must be in {}.
+      '''.format(data_set))
+      return
+    
+    if data is 'all':
+      df = self.x_all.copy()
+    if data is 'train':
+      df = self.x_train.copy()
+    if data is 'test':
+      df = self.x_test.copy()
 
     if dtype is 'all':
-      columns = self.x_all.columns
+      columns = self.df.columns
     elif dtype is 'numeric':
       columns = self.col_numeric
     elif dtype is 'int':
@@ -371,19 +389,19 @@ class Process(Core):
     elif dtype is 'object':
       columns = self.col_object
     if dtype is 'custom':
-      columns = [col for col in self.x_all.columns if col in self.col_numeric]
+      columns = [col for col in df.columns if col in self.col_numeric]
 
     if len(input_cols) != 0:
       columns = input_cols
 
     colorlist = ["r", "g", "c", "m", "y"]
     for i, col in enumerate(columns):       
-      outliers = self.count_byChi2(col, significance)
+      outliers = self.count_byChi2(col, significance, df)
       
-      self.x_all[col].plot(figsize=(7,1.5), color=colorlist[i%len(colorlist)])
+      df[col].plot(figsize=(7,1.5), color=colorlist[i%len(colorlist)])
       if len(outliers) is not 0:
-        out_min = pd.Series(np.zeros(self.x_all[col].shape))
-        out_min[:] = min(self.x_all.reset_index(drop=True)[col][outliers])
+        out_min = pd.Series(np.zeros(df[col].shape))
+        out_min[:] = min(df.reset_index(drop=True)[col][outliers])
         out_min.plot(figsize=(7,1.5), color='black')
         # out_max = pd.Series(np.zeros(self.x_all[col].shape))
         # out_max[:] = max(self.x_all.reset_index(drop=True)[col][outliers])
@@ -392,11 +410,11 @@ class Process(Core):
       
       fig = plt.figure(figsize = (15,7))
       ax1 = fig.add_subplot(2, 2, 1)
-      sns.distplot(self.x_all[col].dropna(), hist=True, rug=True,
+      sns.distplot(df[col].dropna(), hist=True, rug=True,
                    color=colorlist[i%len(colorlist)], ax=ax1)
 
       ax2 = fig.add_subplot(2, 2, 2)
-      sns.boxplot(data=self.x_all[col].dropna(), ax=ax2)
+      sns.boxplot(data=df[col].dropna(), ax=ax2)
       
       df_tmp = pd.DataFrame({col:self.x_train[col],self.y_train.name:self.y_train})
       corr = df_tmp.corr()[col][1]
@@ -406,12 +424,12 @@ class Process(Core):
       sns.residplot(x = self.x_train[col], y = self.y_train, ax=ax4)
       plt.show()
           
-      print ('{} has {} NaNs ({:.2f}%).'.format(col, self.x_all[col].isnull().sum(), self.x_all[col].isnull().sum()/self.n_all*100))
+      print ('{} has {} NaNs ({:.2f}%).'.format(col, df[col].isnull().sum(), df[col].isnull().sum()/self.n_all*100))
       print('Correlation Coefficient ({} vs {}): {:.3f}'.format(col, self.y_train.name, corr))
-      print('Skewness : {:.2f}'.format(self.x_all[col].skew()))
-      print('Kurtosis : {:.2f}'.format(self.x_all[col].kurt()))
+      print('Skewness : {:.2f}'.format(df[col].skew()))
+      print('Kurtosis : {:.2f}'.format(df[col].kurt()))
       print('Number of anomaly scores over threshold({}%) : {} / {}'
-            .format(significance*100, len(outliers), len(self.x_all[col])))
+            .format(significance*100, len(outliers), len(df[col])))
       if len(outliers) is not 0:
         print('Border line : ', out_min[0])
       else:
@@ -530,8 +548,23 @@ class Process(Core):
   
      
   
-  def CorrF(self, method='pearson', view_set=True, view_set_top=10, view_map=False, get_return=False):
-    df_corr = self.x_all.corr(method)
+  def CorrF(self, method='pearson', view_set=True, data='all', view_set_top=10, view_map=False, get_return=False):
+    data_set = (
+              'all', 
+              'train',
+              'test'
+              )
+    if data is 'all':
+      df_corr = self.x_all.corr(method)
+    if data is 'train':
+      df_corr = self.x_train.corr(method)
+    if data is 'test':
+      df_corr = self.x_test.corr(method)
+    else:
+      print('''
+      Error! 'data' must be in {}
+      '''.format(data_set))
+      
     df_corr = abs(df_corr)
     n = len(df_corr)
     corr_ary = []
